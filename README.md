@@ -1,6 +1,6 @@
 # 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase 🥉 Solution Write-Up
 
-> **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan and Kaan -> Ensemble
+> **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan/Kaan -> Ensemble
 
 > **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking ## TODO: REWRITE HERE
 
@@ -10,8 +10,8 @@
 
 ## Table of Contents
 
-* [Overview](#overview) ## TODO: REWRITE HERE
-* [Challenges](#challenges) ## TODO: REWRITE HERE
+* [Overview](#overview)
+* [Challenges](#challenges)
 * [Bilalcan's Solution](#bilalcans-solution)
   * [1) Feature Engineering](#1-feature-engineering)
     * [A) User History](#a-user-history-user_historypy)
@@ -38,20 +38,26 @@
 ## Overview
 
 We built a **learning-to-rank** system that blends **short-term session intent** with **longer-term user & content signals**.
-Core choices:
 
-* **Rich histories** at user/content/term/time levels using fast columnar tooling (Polars/DuckDB).
-* **Recency awareness** via exponential-decay features.
-* **Session-wise ranking** with **CatBoostRanker (YetiRank)** and a **weighted multi-signal label** that emphasizes orders/carts over softer actions.
-
+**Core choices:**
+  * **Rich histories** at user/content/term/time levels using fast columnar tooling (Polars/DuckDB).
+  * **Target Weighting** with orders > carts > favs > clicks.
+  * **Session-wise ranking** with **CatBoostRanker (YetiRank)** using weighted target label.
 ---
 
 ## Challenges
 
 * **Big Data & Memory Issues**
+  Data was quite big for both train/test tables and other tables (100k rows to 100M rows). With these size training/ranking at session granularity with wide, history-heavy features pushed RAM hard. We mitigated by using **Polars lazy scans** and **DuckDB** for on-disk joins/aggregations. We also capped high-cardinality categoricals, pruned unused columns early, and processed data in chunks if needed to keep the working set bounded.
+
 * **Complexity of Feature Engineering**
+  We combined user/content/time/session histories, rolling windows, and exponential decays. These were easy to get leaky or inconsistent. To control this, we split logic into **modular builders** (`user_history.py`, `content_history.py`, `time_history.py`, `session_history.py`, `decay_features.py`) with **as-of joins only**, consistent naming conventions, and **idempotent** functions.
+
 * **Target Creation**
+  Clicks, favs, carts, and orders carry very different business value and noise levels. We constructed a **weighted ranking target** (order > cart > fav > click) and validated weights. We apply **negative downsampling per session** (keep all positives, cap easy negatives) to stabilize class skew without distorting within-session ordering.
+
 * **High Train Time**
+  Session-grouped learning-to-rank with thousands of candidates per session is expensive, training times changed 30m to 2h based on training settings and data. We reduced wall-time by **pre-filtering candidates**, caching intermediate features, and trimming redundant/collinear columns. For CatBoostRanker, we used moderate `depth` and `iterations` to deal with these. We also tested higher depth and iterations but didn't bring that much of improvement on CV.
 
 ---
 
