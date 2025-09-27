@@ -1,32 +1,37 @@
 # 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase Solution Write-Up
 
 > **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan and Kaan -> Ensemble
-> **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking
+
+> **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking ## TODO: REWRITE HERE
+
 > **Stack:** `polars`, `pandas`, `duckdb`, `catboost`, `numpy`, `pyarrow`
 
 ---
 
 ## Table of Contents
 
-* [Overview](#overview)
-* [Data & Leakage Controls](#data--leakage-controls)
-* [Feature Engineering](#feature-engineering)
-  * [Bilalcan's Features](#a-bilalcans-feature-engineering)
-    * [User History](#a-user-history-user_historypy)
-    * [Content History](#b-content-history-content_historypy)
-    * [Time History](#c-time-history-time_historypy)
-    * [Session History](#d-session-history-session_historypy)
-    * [Decay Features](#e-decay-features-decay_featurespy)
-  * [Kaan's Features](#b-kaans-feature-engineering)
-* [Candidate Generation](#candidate-generation)
-* [Labeling & Negative Sampling](#labeling--negative-sampling)
-* [Model: CatBoostRanker (YetiRank)](#model-catboostranker-yetirank)
+* [Overview](#overview) ## TODO: REWRITE HERE
+* [Challenges](#challenges) ## TODO: REWRITE HERE
+* [Bilalcan's Solution](#bilalcans-solution)
+  * [1) Feature Engineering](#1-feature-engineering)
+    * [A) User History](#a-user-history-user_historypy)
+    * [B) Content History](#b-content-history-content_historypy)
+    * [C) Time History](#c-time-history-time_historypy)
+    * [D) Session History](#d-session-history-session_historypy)
+    * [E) Decay Features](#e-decay-features-decay_featurespy)
+  * [2) Feature Selection](#2-feature-selection) ## TODO: WRITE HERE
+  * [3) Labeling & Negative Sampling](#3-labeling--negative-sampling)
+  * [4) Model: CatBoostRanker (YetiRank)](#4-model-catboostranker-yetirank)
+* [Kaan's Solution](#kaans-solution)
+  * [1) FILL HERE](#1-fill-here)
 * [Validation & LB Behavior](#validation--lb-behavior)
 * [Inference Pipeline](#inference-pipeline)
 * [Top Features (Qualitative)](#top-features-qualitative)
+* [What Worked, What Didn't?](#what-worked-what-didnt)
+* [Improve Steps](#improve-steps)
 * [Reproducibility](#reproducibility)
-* [Lessons & Next Steps (Phase-2)](#lessons--next-steps-phase2)
-* [TL;DR](#tldr)
+* [Lessons](#lessons)
+* [TL;DR](#tldr) ## TODO: REWRITE HERE
 
 ---
 
@@ -41,65 +46,48 @@ Core choices:
 
 ---
 
-## Data & Leakage Controls
-
-* **IDs** are hashed; used as categorical keys.
-* **Scaling**: Numerical values already in `[0,1]`; no extra scaling required.
-* **Missing values**: Numeric aggregates → `0` where additive; categoricals → `"unknown"`.
-* **Time alignment**: All histories via **backward as-of joins**; rolling/decay windows only use **past** rows. Same-timestamp label peeking avoided.
+## Challenges
 
 ---
 
-## Feature Engineering
+## Bilalcan's Solution
 
-### (a) Bilalcan's Feature Engineering
+### 1) Feature Engineering
 
-#### (a) User History (`user_history.py`)
+#### a) User History (`user_history.py`)
 
 * Site-wide cumulative & rolling counts: `total_click`, `total_fav`, `total_cart`, `total_order`.
 * **Decay-weighted** interaction counts to emphasize recency.
 * Behavior ratios (e.g., `cart/click`, `order/click`), plus `avg/max/std/active_session_count`.
 * Search-side mirrors (e.g., `term_search_*`, `user_search_*`).
 
-#### (b) Content History (`content_history.py`)
+#### b) Content History (`content_history.py`)
 
 * Global popularity metrics and **category-aware** stats (level1/level2/leaf).
 * Smoothed review/price signals (Bayesian/Wilson smoothing on low counts).
 * Category size priors to stabilize sparse leaves.
 
-#### (c) Time History (`time_history.py`)
+#### c) Time History (`time_history.py`)
 
 * Periodic windows (e.g., **24h**, **72h**) with `mean/std/min/max/sum` and ratios.
 * Short-term **lags** (e.g., `*_lag1`) for momentum.
 * Implemented with as-of joins to avoid leakage.
 
-#### (d) Session History (`session_history.py`)
+#### d) Session History (`session_history.py`)
 
-* Session aggregates and `session_candidate_count`.
+* Session aggregates and `session_candidate_count` (column that shows how many candidates are in that session).
 * Session-normalized ratios (sitewide vs search tables).
 * Robust utilities that only compute available ratios (schema-safe).
 
-#### (e) Decay Features (`decay_features.py`)
+#### e) Decay Features (`decay_features.py`)
 
 * **Exponentially decayed** counts with configurable half-life
   (e.g., windows `[3, 6, 12]`; `decay_value = log(0.5)`).
 * Applied to both site-wide and search interactions.
 
----
+### 2) Feature Selection
 
-### (b) Kaan's Feature Engineering
-
----
-
-## Candidate Generation
-
-* Merge candidates from multiple pools (session, user, content popularity, search terms).
-* Join all feature families on `(session_id, user_id_hashed, content_id_hashed, ts_hour)`.
-* Add session context via `candidate_counter(df)`.
-
----
-
-## Labeling & Negative Sampling
+### 3) Labeling & Negative Sampling
 
 **Weighted ranking target** blending actions:
 
@@ -114,9 +102,7 @@ weighted_target =
 * Auxiliary `new_target = ordered + added_to_cart + added_to_fav + clicked` for filtering.
 * **Negative downsampling**: if a session has >1000 zero-target rows, cap negatives at 1000; keep **all positives**.
 
----
-
-## Model: CatBoostRanker (YetiRank)
+### 4) Model: CatBoostRanker (YetiRank)
 
 * **Loss:** `YetiRank`
 * **Group:** `session_id` (ranking is per session)
@@ -125,6 +111,12 @@ weighted_target =
   *(Defaults were strong given feature richness.)*
 
 **Why YetiRank?** Strong session-wise pairwise ordering without manual pair mining; handles mixed numeric/categorical features gracefully.
+
+---
+
+## Kaan's Solution
+
+### (a) FILL HERE
 
 ---
 
@@ -165,6 +157,14 @@ Polars for feature plumbing; DuckDB CTEs for window features. Builders are idemp
 
 ---
 
+## What Worked, What Didn't?
+
+---
+
+## Improve Steps
+
+---
+
 ## Reproducibility
 
 ### Environment
@@ -198,7 +198,7 @@ pip install -r requirements.txt
 
 ---
 
-## Lessons & Next Steps (Phase-2)
+## Lessons
 
 * **Query understanding:** normalization/expansion for long-tail intents.
 * **Two-stage retrieval:** learnable ANN (embeddings + FAISS/HNSW) before CatBoost.
