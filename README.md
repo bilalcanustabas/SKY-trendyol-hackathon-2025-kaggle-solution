@@ -20,11 +20,12 @@
     * [D) Session History](#d-session-history-session_historypy)
     * [E) Decay Features](#e-decay-features-decay_featurespy)
   * [2) Feature Selection](#2-feature-selection)
-  * [3) Target Creation & Negative Sampling](#3-target-creation-negative-sampling) ## TODO: REWRITE HERE
-  * [4) Model: CatBoostRanker (YetiRank)](#4-model-catboostranker-yetirank) ## TODO: REWRITE HERE
+  * [3) Validation Scheme & LB Behavior](#3-validation-scheme-lb-behavior) ## TODO: WRITE HERE
+  * [4) Target Creation & Negative Sampling](#4-target-creation-negative-sampling)
+  * [5) Model: CatBoostRanker (YetiRank)](#5-model-catboostranker-yetirank) ## TODO: REWRITE HERE
 * [Kaan's Solution](#kaans-solution)
   * [1) FILL HERE](#1-fill-here)
-* [Validation & LB Behavior](#validation--lb-behavior)
+* [Validation & LB Behavior](#validation--lb-behavior) ## TODO: ADD HERE TO CANS SOLUTION
 * [Inference Pipeline](#inference-pipeline)
 * [Top Features (Qualitative)](#top-features) ## TODO: FILL HERE
 * [What Worked, What Didn't?](#what-worked-what-didnt)
@@ -104,7 +105,9 @@ We built a **learning-to-rank** system that blends **short-term session intent**
 * **Fast Feature Selection with LightGBM** After multi-collinearity selection, I fitted lightgbm regression to my training data and sorted features based on feature importance then calculated cumulative improtance to drop features above %99 importance.
 * **What is the Final Features?** In the end, I had 455 numerical/binary features and 4 categorical features from ~600 features. You can see these features in `merged_solution.ipynb` at `## Bilalcan's Solution -> ### Modelling` part.
 
-### 3)  Target Creation & Negative Sampling
+### 3) Validation Scheme & LB Behavior
+
+### 4) Target Creation & Negative Sampling
 
 **Weighted ranking target** blending actions:
 
@@ -115,11 +118,9 @@ weighted_target =
 + 1.8 * added_to_fav
 + 0.5 * clicked
 ```
+* **Negative downsampling**: if a session has >1000 contents, keep **all positives** (contents with non-zero target value) and add negatives (contents with zero target value) until session reaches 1000 contents. This improved my validation score a bit but I didn't see that much of difference on PB, still I used this in my final solution.
 
-* Auxiliary `new_target = ordered + added_to_cart + added_to_fav + clicked` for filtering.
-* **Negative downsampling**: if a session has >1000 zero-target rows, cap negatives at 1000; keep **all positives**.
-
-### 4) Model: CatBoostRanker (YetiRank)
+### 5) Model: CatBoostRanker (YetiRank)
 
 * **Loss:** `YetiRank`
 * **Group:** `session_id` (ranking is per session)
