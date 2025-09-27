@@ -1,4 +1,4 @@
-# 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase Solution Write-Up
+# 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase 🥉 Solution Write-Up
 
 > **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan and Kaan -> Ensemble
 
@@ -19,14 +19,14 @@
     * [C) Time History](#c-time-history-time_historypy)
     * [D) Session History](#d-session-history-session_historypy)
     * [E) Decay Features](#e-decay-features-decay_featurespy)
-  * [2) Feature Selection](#2-feature-selection) ## TODO: WRITE HERE
-  * [3) Labeling & Negative Sampling](#3-labeling--negative-sampling)
-  * [4) Model: CatBoostRanker (YetiRank)](#4-model-catboostranker-yetirank)
+  * [2) Feature Selection](#2-feature-selection)
+  * [3) Target Creation & Negative Sampling](#3-target-creation-negative-sampling) ## TODO: REWRITE HERE
+  * [4) Model: CatBoostRanker (YetiRank)](#4-model-catboostranker-yetirank) ## TODO: REWRITE HERE
 * [Kaan's Solution](#kaans-solution)
   * [1) FILL HERE](#1-fill-here)
 * [Validation & LB Behavior](#validation--lb-behavior)
 * [Inference Pipeline](#inference-pipeline)
-* [Top Features (Qualitative)](#top-features-qualitative)
+* [Top Features (Qualitative)](#top-features) ## TODO: FILL HERE
 * [What Worked, What Didn't?](#what-worked-what-didnt)
 * [Improve Steps](#improve-steps)
 * [Reproducibility](#reproducibility)
@@ -47,6 +47,11 @@ Core choices:
 ---
 
 ## Challenges
+
+* **Big Data & Memory Issues**
+* **Complexity of Feature Engineering**
+* **Target Creation**
+* **High Train Time**
 
 ---
 
@@ -81,13 +86,19 @@ Core choices:
 
 #### e) Decay Features (`decay_features.py`)
 
+* **Session Based History** This feature engineering calculates the `mean, sum, std, min, max` for last N sessions with a decay parameter.
+* **Why This Important?** Normally, user session's are important
 * **Exponentially decayed** counts with configurable half-life
   (e.g., windows `[3, 6, 12]`; `decay_value = log(0.5)`).
 * Applied to both site-wide and search interactions.
 
 ### 2) Feature Selection
 
-### 3) Labeling & Negative Sampling
+* **Multi-Collinearity Selection** There were quite a lot collinear feature with each other, so I removed one of the features of collineared with each other, to do that I filtered all correlations that above 0.99 and selected the one with highest correlation with target column then dropped rest of those collineared ones.
+* **Fast Feature Selection with LightGBM** After multi-collinearity selection, I fitted lightgbm regression to my training data and sorted features based on feature importance then calculated cumulative improtance to drop features above %99 importance.
+* **What is the Final Features?** In the end, I had 455 numerical/binary features and 4 categorical features from ~600 features. You can see these features in `merged_solution.ipynb` at `## Bilalcan's Solution -> ### Modelling` part.
+
+### 3)  Target Creation & Negative Sampling
 
 **Weighted ranking target** blending actions:
 
@@ -111,6 +122,7 @@ weighted_target =
   *(Defaults were strong given feature richness.)*
 
 **Why YetiRank?** Strong session-wise pairwise ordering without manual pair mining; handles mixed numeric/categorical features gracefully.
+**Is there a better alternative than YetiRank?** Actually YetiRankPairwise gives slightly better results but training time triples because of that we choose YetiRank to try more experiments.
 
 ---
 
@@ -147,17 +159,25 @@ Polars for feature plumbing; DuckDB CTEs for window features. Builders are idemp
 
 ---
 
-## Top Features (Qualitative)
-
-* **User site-wide rolling/decay** of `click/cart/order` (`avg/sum/std`).
-* **Search-term decays** (`total_search_click/impression` with 3/6/12-step windows).
-* **Content popularity** + smoothed review/price.
-* **Session context** (candidate count & ratios).
-* **Time windows** (24h/72h aggregates + `*_lag1`).
+## Top Features
 
 ---
 
 ## What Worked, What Didn't?
+
+### Worked
+
+* **Session Based History and Decaying**
+* **Target Weighting**
+* **Ranker Model**
+* **Ensemble**
+
+### Didn't Worked or Worked but Worse
+
+* **Wilson Score**
+* **4 Classifier Model**
+* **Regression Model**
+* **Other Algorithms Then Catboost**
 
 ---
 
