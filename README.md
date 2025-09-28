@@ -173,8 +173,8 @@ Single-shot DuckDB SQL with 20+ CTEs, strict time-safe windows (`… PRECEDING A
 weighted_target =
   9.0 * ordered
 + 8.0 * added_to_cart
-+ 1.8 * added_to_fav
-+ 0.5 * clicked
++ 0.1 * added_to_fav
++ 2.2 * clicked
 ```
 
 *Used Optuna to optimise weights for best AUC on validation splits. Final weights emphasise `order` and `cart` actions while giving moderate importance to `clicks` and minimal to `favs`.*
