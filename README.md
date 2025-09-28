@@ -135,7 +135,34 @@ weighted_target =
 
 ## Kaan's Solution
 
-### (a) FILL HERE
+### 1) Feature Engineering
+
+a) **User Histories**  
+- Rolling 24h/72h ratios from sitewide & search logs (`click→order`, `click→cart`, CTR).  
+- User–content affinity: cumulative counts + recency gaps (hours since last click/cart/order).  
+- Category-level conversion rates (L1/L2/leaf) via time-safe ASOF joins.  
+
+b) **Content Histories**  
+- Popularity priors: all-time totals + 7d/30d velocity ratios.  
+- Category-relative ranks (leaf/L2/L1) for competitive positioning.  
+- Price & review stats (absolute + relative to category average).  
+
+c) **Search & Term Features**  
+- CTR windows for term/content (24h/72h, 3d/7d).  
+- Top-term engagement signals for query–item alignment.  
+
+d) **Session Context**  
+- In-session ranks for price, rating, review counts.  
+- Dispersion metrics (mean, std, min, max) for price & quality signals.  
+- Session size (`session_item_count`) and normalised deltas (% difference from session avg).  
+
+e) **Demographic & Affinity**  
+- Aggregated age/gender interaction stats (avg age, gender-based conversion rates).  
+- Content tenure (days since creation) and CV tag richness.  
+
+**Implementation:**  
+
+Single-shot DuckDB SQL with 20+ CTEs, strict time-safe windows (`… PRECEDING AND 1 MICROSECOND PRECEDING`) and ASOF joins to prevent leakage.
 
 ---
 
