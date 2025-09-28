@@ -137,12 +137,12 @@ weighted_target =
 
 ### 1) Feature Engineering
 
-a) **User Histories**  
+a) **User History**  
 - Rolling 24h/72h ratios from sitewide & search logs (`click→order`, `click→cart`, CTR).  
 - User–content affinity: cumulative counts + recency gaps (hours since last click/cart/order).  
 - Category-level conversion rates (L1/L2/leaf) via time-safe ASOF joins.  
 
-b) **Content Histories**  
+b) **Content History**  
 - Popularity priors: all-time totals + 7d/30d velocity ratios.  
 - Category-relative ranks (leaf/L2/L1) for competitive positioning.  
 - Price & review stats (absolute + relative to category average).  
@@ -161,10 +161,23 @@ e) **Demographic & Affinity**
 - Content tenure (days since creation) and CV tag richness.  
 
 **Implementation:**  
-
 Single-shot DuckDB SQL with 20+ CTEs, strict time-safe windows (`… PRECEDING AND 1 MICROSECOND PRECEDING`) and ASOF joins to prevent leakage.
 
 ---
+
+### 2) Target Creation & Tuning Target Weights
+
+**Weighted ranking target** tuned via **Optuna** with 3-fold time-based CV:
+
+```
+weighted_target =
+  9.0 * ordered
++ 8.0 * added_to_cart
++ 1.8 * added_to_fav
++ 0.5 * clicked
+```
+
+*Used Optuna to optimise weights for best AUC on validation splits. Final weights emphasise `order` and `cart` actions while giving moderate importance to `clicks` and minimal to `favs`.*
 
 ## Validation & LB Behavior
 
