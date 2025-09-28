@@ -163,8 +163,6 @@ e) **Demographic & Affinity**
 **Implementation:**  
 Single-shot DuckDB SQL with 20+ CTEs, strict time-safe windows (`… PRECEDING AND 1 MICROSECOND PRECEDING`) and ASOF joins to prevent leakage.
 
----
-
 ### 2) Target Creation & Tuning Target Weights
 
 **Weighted ranking target** tuned via **Optuna** with 3-fold time-based CV:
@@ -178,6 +176,11 @@ weighted_target =
 ```
 
 *Used Optuna to optimise weights for best AUC on validation splits. Final weights emphasise `order` and `cart` actions while giving moderate importance to `clicks` and minimal to `favs`.*
+
+### 3) Feature Selection
+
+No wrapper-based feature selection method was applied.  
+Only removed one feature from each pair with correlation **> 0.98** to reduce redundancy. 17 features are eliminated out of 120, leaving **final 103 features**.
 
 ## Validation & LB Behavior
 
