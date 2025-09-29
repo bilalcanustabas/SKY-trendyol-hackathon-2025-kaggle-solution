@@ -182,6 +182,15 @@ weighted_target =
 No wrapper-based feature selection method was applied.  
 Only removed one feature from each pair with correlation **> 0.98** to reduce redundancy. 17 features are eliminated out of 120, leaving **final 103 features**.
 
+### 4) Model: CatBoostRanker (YetiRank)
+
+* **Loss:** `YetiRank`
+* **Group:** `session_id` (ranking is per session)
+* **Categoricals:** fillna `"unknown"`, pass via `cat_features`
+* **Params:** `iterations=1000`, `learning_rate=0.05`, `depth=6`, `random_seed=42`, `verbose=100`
+
+---
+
 ## Validation & LB Behavior
 
 * Time-consistent joins and **session-grouped** evaluation.
