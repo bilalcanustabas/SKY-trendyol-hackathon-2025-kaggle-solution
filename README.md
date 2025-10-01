@@ -1,10 +1,8 @@
 # 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase 🥉 Solution Write-Up
 
-> **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan/Kaan -> Ensemble
-
-> **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking ## TODO: REWRITE HERE
-
-> **Stack:** `polars`, `pandas`, `duckdb`, `catboost`, `numpy`, `pyarrow`
+* **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan/Kaan -> Ensemble
+* **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking ## TODO: REWRITE HERE
+* **Stack:** `polars`, `pandas`, `duckdb`, `catboost`, `numpy`, `pyarrow`
 
 ---
 
@@ -20,9 +18,8 @@
     * [D) Session History](#d-session-history-session_historypy)
     * [E) Decay Features](#e-decay-features-decay_featurespy)
   * [2) Feature Selection](#2-feature-selection)
-  * [3) Validation Scheme & LB Behavior](#3-validation-scheme-lb-behavior) ## TODO: WRITE HERE
-  * [4) Target Creation & Negative Sampling](#4-target-creation-negative-sampling)
-  * [5) Model: CatBoostRanker (YetiRank)](#5-model-catboostranker-yetirank) ## TODO: REWRITE HERE
+  * [3) Target Creation & Negative Sampling](#3-target-creation-negative-sampling)
+  * [4) Model: CatBoostRanker (YetiRank)](#4-model-catboostranker-yetirank)
 * [Kaan's Solution](#kaans-solution)
   * [1) Feature Engineering](#1-feature-engineering)
     * [A) User History](#a-user-history)
@@ -33,13 +30,12 @@
   * [2) Target Creation & Tuning Target Weights](#2-target-creation--tuning-target-weights)
   * [3) Feature Selection](#3-feature-selection)
   * [4) Model: CatBoostRanker (YetiRank)](#4-model-catboostranker-yetirank)
-* [Validation & LB Behavior](#validation--lb-behavior) ## TODO: ADD HERE TO CANS SOLUTION
+* [Validation Scheme & LB Behavior](#validation-scheme-lb-behavior)
 * [Inference Pipeline](#inference-pipeline)
-* [Top Features (Qualitative)](#top-features) ## TODO: FILL HERE
+* [Top Features](#top-features)
 * [What Worked, What Didn't?](#what-worked-what-didnt)
 * [Improve Steps](#improve-steps)
 * [Reproducibility](#reproducibility)
-* [Lessons](#lessons)
 * [TL;DR](#tldr) ## TODO: REWRITE HERE
 
 ---
@@ -80,6 +76,7 @@ We built a **learning-to-rank** system that blends **short-term session intent**
 * **Decay-weighted** interaction counts to emphasize recency.
 * Behavior ratios (e.g., `cart/click`, `order/click`), plus `avg/max/std/active_session_count`.
 * Search-side mirrors (e.g., `term_search_*`, `user_search_*`).
+* User metadata informations (e.g., `age`, `join_date`, `gender`)
 
 #### b) Content History (`content_history.py`)
 
@@ -101,23 +98,21 @@ We built a **learning-to-rank** system that blends **short-term session intent**
 
 #### e) Decay Features (`decay_features.py`)
 
-* **Session Based History** This feature engineering calculates the `mean, sum, std, min, max` for last N sessions with a decay parameter.
-* **Why This Important?** Normally, user session's are important
-* **Exponentially decayed** counts with configurable half-life
+* **Session Based History:** This feature engineering calculates the `mean, sum, std, min, max` for last N sessions with a decay parameter.
+* **Why This Important?** Normally, calculating features from last T time of user session's creates a meaning but it fails to capture importance of recent sessions but calculating session based historical features with a decay parameter add a meaning from another level.
+* **Exponentially Decayed:** Calculates historical features with last N sessions with decay parameter.
   (e.g., windows `[3, 6, 12]`; `decay_value = log(0.5)`).
 * Applied to both site-wide and search interactions.
 
 ### 2) Feature Selection
 
-* **Multi-Collinearity Selection** There were quite a lot collinear feature with each other, so I removed one of the features of collineared with each other, to do that I filtered all correlations that above 0.99 and selected the one with highest correlation with target column then dropped rest of those collineared ones.
-* **Fast Feature Selection with LightGBM** After multi-collinearity selection, I fitted lightgbm regression to my training data and sorted features based on feature importance then calculated cumulative improtance to drop features above %99 importance.
+* **Multi-Collinearity Selection:** There were quite a lot collinear feature with each other, so I removed one of the features of collineared with each other, to do that I filtered all correlations that above 0.99 and selected the one with highest correlation with target column then dropped rest of those collineared ones.
+* **Fast Feature Selection with LightGBM:** After multi-collinearity selection, I fitted lightgbm regression to my training data and sorted features based on feature importance then calculated cumulative improtance to drop features above %99 importance.
 * **What is the Final Features?** In the end, I had 455 numerical/binary features and 4 categorical features from ~600 features. You can see these features in `merged_solution.ipynb` at `## Bilalcan's Solution -> ### Modelling` part.
 
-### 3) Validation Scheme & LB Behavior
+### 3) Target Creation & Negative Sampling
 
-### 4) Target Creation & Negative Sampling
-
-**Weighted ranking target** blending actions:
+**Weighted Ranking Target:**
 
 ```
 weighted_target =
@@ -126,15 +121,14 @@ weighted_target =
 + 1.8 * added_to_fav
 + 0.5 * clicked
 ```
-* **Negative downsampling**: if a session has >1000 contents, keep **all positives** (contents with non-zero target value) and add negatives (contents with zero target value) until session reaches 1000 contents. This improved my validation score a bit but I didn't see that much of difference on PB, still I used this in my final solution.
+* **Negative Downsampling:** If a session has >1000 contents, keep **all positives** (contents with non-zero target value) and add negatives (contents with zero target value) until session reaches 1000 contents. This improved my validation score a bit but I didn't see that much of difference on PB, still I used this in my final solution.
 
-### 5) Model: CatBoostRanker (YetiRank)
+### 4) Model: CatBoostRanker (YetiRank)
 
 * **Loss:** `YetiRank`
 * **Group:** `session_id` (ranking is per session)
 * **Categoricals:** fillna `"unknown"`, pass via `cat_features`
-* **Representative params:** `depth=6`, `random_seed=42`, `verbose=100`
-  *(Defaults were strong given feature richness.)*
+* **Params:** `iterations=1000`, `learning_rate=0.05`, `depth=6`, `random_seed=42`, `verbose=100`
 
 **Why YetiRank?** Strong session-wise pairwise ordering without manual pair mining; handles mixed numeric/categorical features gracefully.
 **Is there a better alternative than YetiRank?** Actually YetiRankPairwise gives slightly better results but training time triples because of that we choose YetiRank to try more experiments.
@@ -199,34 +193,32 @@ Only removed one feature from each pair with correlation **> 0.98** to reduce re
 
 ---
 
-## Validation & LB Behavior
+## Validation Scheme & LB Behavior
 
-* Time-consistent joins and **session-grouped** evaluation.
-* Heavier weights on `order/cart` improved LB while preserving click relevance.
-* **Ablations (observed):**
+* **Time Based Validation Split:** There are three unique datetimes in train sessions and test sessions only have one unique datetime, since amount of data for each datetime is a lot and distrubutions similar in terms of other columns we **used last datetime of train sessions as validation group**.
 
-  1. **Decay features** → consistent gains on short sessions.
-  2. **Category-aware content priors** → help cold-ish items.
-  3. **Session context** (`session_candidate_count`, within-session ratios) → crucial when candidate sets are large.
-
-> Phase-1 focused on public LB; Phase-2 will introduce stricter offline splits for generalization.
+* **LB Behavior:** LB and validation scores were quite similar for most of our trials.
 
 ---
 
 ## Inference Pipeline
 
-1. Build candidates for the session.
-2. Join user/content/time/session features (all backward-looking).
-3. Fill missing categoricals → `"unknown"`.
-4. Predict with CatBoostRanker.
-5. Rank within each `session_id` by prediction score.
-
-**Efficiency notes:**
-Polars for feature plumbing; DuckDB CTEs for window features. Builders are idempotent for caching and incremental runs.
+1. Join user/content/time/session features (all backward-looking).
+2. Fill missing categoricals → `"unknown"`.
+3. Predict with CatBoostRanker.
+4. Rank within each `session_id` by prediction score.
 
 ---
 
 ## Top Features
+
+* Content's and User's click/search ratios
+* Sitewide search rank of Content
+* Content's total decay score in fashion
+* User tenure and sign-up age
+* Session candidate count
+* Content's rank in session based on click/search, click/fav, click/cart, bayesian rating
+* Content's sitewide ratio avg for 3d/7d (click/search, click/fav, click/cart, click/order)
 
 ---
 
@@ -245,10 +237,14 @@ Polars for feature plumbing; DuckDB CTEs for window features. Builders are idemp
 * **4 Classifier Model**
 * **Regression Model**
 * **Other Algorithms Then Catboost**
+* **Other Objective Metrics**
+* **Ensemble of Same Model with Different Seeds**
 
 ---
 
 ## Improve Steps
+
+* We didn't used **embeddings of cv tags** (visual labels of items), and it can be added because there is potential to improve.
 
 ---
 
@@ -282,16 +278,6 @@ pip install -r requirements.txt
 #   session_history.py
 #   decay_features.py
 ```
-
----
-
-## Lessons
-
-* **Query understanding:** normalization/expansion for long-tail intents.
-* **Two-stage retrieval:** learnable ANN (embeddings + FAISS/HNSW) before CatBoost.
-* **Hard negatives:** popular-but-irrelevant items within same leaf/category.
-* **Calibration:** post-ranker score calibration across variable candidate sizes.
-* **Modeling:** test listwise losses and distillation from cross-encoders.
 
 ---
 
