@@ -1,4 +1,4 @@
-# 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase 🥉 Solution Write-Up
+# 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase 🥇 Public / 🥉 Private Solution Write-Up
 
 * **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan/Kaan -> Ensemble
 * **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking ## TODO: REWRITE HERE
@@ -36,7 +36,7 @@
 * [What Worked, What Didn't?](#what-worked-what-didnt)
 * [Improve Steps](#improve-steps)
 * [Reproducibility](#reproducibility)
-* [TL;DR](#tldr) ## TODO: REWRITE HERE
+* [TL;DR](#tldr)
 
 ---
 
@@ -283,4 +283,14 @@ pip install -r requirements.txt
 
 ## TL;DR
 
-A fast, leakage-safe **session ranking** pipeline using Polars/DuckDB features and a single **CatBoostRanker (YetiRank)** trained on a **weighted multi-signal target**. Biggest wins: **decay-weighted histories**, **category-aware content priors**, and **session context features**—all engineered to respect time and keep inference snappy.
+* Built a **session-aware learning-to-rank** pipeline that blends short-term intent with **user/content/time histories**, all computed via **leakage-safe ASOF joins** in Polars/DuckDB.
+* Crafted a **weighted target** (orders > carts > favs > clicks) and light **negative downsampling** per session to stabilize training without distorting within-session order.
+* Trained **CatBoostRanker (YetiRank)** on `session_id` groups; moderate depth/iterations for speed–accuracy balance; simple categorical handling (`unknown`).
+* Heavy use of **recency/decay features**, rolling windows, and session context; pruned collinear features and (in one variant) used LightGBM for quick importance-based trimming.
+* **Validation** used a strict time split (last train timestamp as val); **CV ≈ LB**, giving reliable offline signals.
+* **Inference** = join backward-looking features → predict → rank per session; final **ensemble** of two variants nudged gains.
+* **Worked:** session-decayed histories, target weighting, CatBoost LTR, small ensemble.
+* **Didn’t:** Wilson score, multi-classifier/regression baselines, non-CatBoost LTR/objectives, seed-only ensembles.
+* **Next:** integrate **CV-tag/visual embeddings** for further lift.
+* **Stack:** `polars`, `duckdb`, `pandas`, `catboost`, `numpy`, `pyarrow`.
+* **Result:** 🥇 Public / 🥉 Private in Trendyol Hackathon 2025 Kaggle Phase.
