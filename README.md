@@ -24,7 +24,15 @@
   * [4) Target Creation & Negative Sampling](#4-target-creation-negative-sampling)
   * [5) Model: CatBoostRanker (YetiRank)](#5-model-catboostranker-yetirank) ## TODO: REWRITE HERE
 * [Kaan's Solution](#kaans-solution)
-  * [1) FILL HERE](#1-fill-here)
+  * [1) Feature Engineering](#1-feature-engineering)
+    * [A) User History](#a-user-history)
+    * [B) Content History](#b-content-history)
+    * [C) Search & Term Features](#c-search-term-features)
+    * [D) Session Context](#d-session-context)
+    * [E) Demographic & Affinity](#e-demographic-affinity)
+  * [2) Target Creation & Tuning Target Weights](#2-target-creation--tuning-target-weights)
+  * [3) Feature Selection](#3-feature-selection)
+  * [4) Model: CatBoostRanker (YetiRank)](#4-model-catboostranker-yetirank)
 * [Validation & LB Behavior](#validation--lb-behavior) ## TODO: ADD HERE TO CANS SOLUTION
 * [Inference Pipeline](#inference-pipeline)
 * [Top Features (Qualitative)](#top-features) ## TODO: FILL HERE
@@ -137,6 +145,9 @@ weighted_target =
 
 ### 1) Feature Engineering
 
+**Implementation:**  
+Single-shot DuckDB SQL with 20+ CTEs, strict time-safe windows (`… PRECEDING AND 1 MICROSECOND PRECEDING`) and ASOF joins to prevent leakage.
+
 a) **User History**  
 - Rolling 24h/72h ratios from sitewide & search logs (`click→order`, `click→cart`, CTR).  
 - User–content affinity: cumulative counts + recency gaps (hours since last click/cart/order).  
@@ -159,9 +170,6 @@ d) **Session Context**
 e) **Demographic & Affinity**  
 - Aggregated age/gender interaction stats (avg age, gender-based conversion rates).  
 - Content tenure (days since creation) and CV tag richness.  
-
-**Implementation:**  
-Single-shot DuckDB SQL with 20+ CTEs, strict time-safe windows (`… PRECEDING AND 1 MICROSECOND PRECEDING`) and ASOF joins to prevent leakage.
 
 ### 2) Target Creation & Tuning Target Weights
 
