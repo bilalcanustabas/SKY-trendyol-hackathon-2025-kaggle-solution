@@ -1,7 +1,7 @@
 # 🏆 Team SKY — Trendyol Hackathon 2025 Kaggle Phase 🥇 Public / 🥉 Private Solution Write-Up
 
 * **Pipeline:** Feature Engineering -> Learning-to-Rank Model Bilalcan/Kaan -> Ensemble
-* **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking ## TODO: REWRITE HERE
+* **Key Ideas:** Recency-aware histories, leakage-safe joins, session-wise ranking 
 * **Stack:** `polars`, `pandas`, `duckdb`, `catboost`, `numpy`, `pyarrow`
 
 ---
